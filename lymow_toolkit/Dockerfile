@@ -11,7 +11,7 @@ WORKDIR /app
 
 # Build from the user's fork/branch instead of the official release tarball
 ARG LYMOW_REPO="https://github.com/MasterCATZ/lymow-toolkit-downloads.git"
-ARG LYMOW_BRANCH="feat/map-height-slider"
+ARG LYMOW_BRANCH="feat/ha-map-height-slider"
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && git clone --depth 1 --branch "$LYMOW_BRANCH" "$LYMOW_REPO" /tmp/lymow-src \
