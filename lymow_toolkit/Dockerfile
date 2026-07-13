@@ -6,33 +6,18 @@
 ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
 FROM python:3.12-slim
 
-ARG LYMOW_VERSION=1.37.0
+ARG LYMOW_VERSION=1.37.0-mapheight
 WORKDIR /app
 
-# app payload (official release bundle) + python deps + camera/tunnel helpers, one cached layer
-# Google-sign-in browser = the Playwright chromium build (most compatible headless build; the Debian
-# distro build silently crashed on some hosts). armv7 has no Playwright build -> Debian chromium.
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fonts-liberation dbus curl ca-certificates \
-    && dbus-uuidgen --ensure=/etc/machine-id \
-    && arch="$(dpkg --print-architecture)" \
-    && if [ "$arch" = "amd64" ] || [ "$arch" = "arm64" ]; then \
-         pip install --no-cache-dir playwright \
-         && (playwright install --with-deps --no-shell chromium \
-             || playwright install --with-deps chromium); \
-       else apt-get install -y --no-install-recommends chromium; fi \
-    && curl -fsSL --retry 3 -o /tmp/lymow.tar.gz \
-       "https://github.com/AppGuy77/lymow-toolkit-downloads/releases/download/v${LYMOW_VERSION}/lymow-docker-v${LYMOW_VERSION}.tar.gz" \
-    && tar xzf /tmp/lymow.tar.gz -C /tmp \
-    && cp -a /tmp/lymow-docker/. /app/ \
-    && rm -rf /tmp/lymow.tar.gz /tmp/lymow-docker \
-    && pip install --no-cache-dir -r requirements.txt \
-    && case "$(dpkg --print-architecture)" in armhf|armel) cfarch=arm;; i386) cfarch=386;; *) cfarch="$(dpkg --print-architecture)";; esac \
-    && (curl -fsSL --connect-timeout 10 --max-time 180 --retry 2 -o /usr/local/bin/cloudflared \
-       "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${cfarch}" \
-       && chmod +x /usr/local/bin/cloudflared \
-       || echo "WARN: cloudflared fetch skipped (remote tunnel off; LAN/HA access still works)") \
-    && apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+# Build from the user's fork/branch instead of the official release tarball
+ARG LYMOW_REPO="https://github.com/MasterCATZ/lymow-toolkit.git"
+ARG LYMOW_BRANCH="feat/map-height-slider"
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && git clone --depth 1 --branch "$LYMOW_BRANCH" "$LYMOW_REPO" /tmp/lymow-src \
+    && cp -a /tmp/lymow-src/. /app/ \
+    && rm -rf /tmp/lymow-src \
+    && pip install --no-cache-dir -r requirements.txt
 
 # /data is Home Assistant's persistent add-on volume: login/config/backups survive updates & rebuilds
 ENV LYMOW_HOST=0.0.0.0 LYMOW_PORT=8787 LYMOW_RELOAD=0 PYTHONUNBUFFERED=1 LYMOW_DATA=/data
