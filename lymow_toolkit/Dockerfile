@@ -10,7 +10,7 @@ ARG LYMOW_VERSION=1.37.0-mapheight
 WORKDIR /app
 
 # Build from the user's fork/branch instead of the official release tarball
-ARG LYMOW_REPO="https://github.com/MasterCATZ/lymow-toolkit.git"
+ARG LYMOW_REPO="https://github.com/MasterCATZ/lymow-toolkit-downloads.git"
 ARG LYMOW_BRANCH="feat/map-height-slider"
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
